@@ -91,17 +91,16 @@ bool CLASS::set_signature(const hash_digest& digest,
     const auto row = possible_narrow_cast<ecdsa_link::integer>(one);
 
     // Allocate 1 row across all columns.
-    // TODO: this could provide a single remap lock for all puts below.
     const auto fk = store_.ecdsa.allocate(row);
     if (fk.is_terminal())
         return false;
 
     // Write one value to each column in corresponding positions.
-    return
-        store_.ecdsa.correlate.put(fk, correlate_t{ {}, link, id }) &&
-        store_.ecdsa.digest.put(fk, digest_t{ {}, digest }) &&
-        store_.ecdsa.compressed.put(fk, compressed_t{ {}, point }) &&
-        store_.ecdsa.signature.put(fk, signature_t{ {}, signature });
+    return store_.ecdsa.put_columns(fk,
+        correlate_t{ {}, link, id },
+        digest_t{ {}, digest },
+        compressed_t{ {}, point },
+        signature_t{ {}, signature });
     // ========================================================================
 }
 
@@ -128,17 +127,16 @@ bool CLASS::set_signatures(const hash_digest& digest,
     const auto rows = possible_narrow_cast<ecdsa_link::integer>(count);
 
     // Allocate rows across all columns.
-    // TODO: this could provide a single remap lock for all puts below.
     const auto fk = store_.ecdsa.allocate(rows);
     if (fk.is_terminal())
         return false;
 
     // Write values to each column in corresponding positions.
-    return
-        store_.ecdsa.correlate.put(fk, correlate_t{ {}, count, link, ckeys, csigs, id }) &&
-        store_.ecdsa.digest.put(fk, digest_t{ {}, count, digest }) &&
-        store_.ecdsa.compressed.put(fk, compressed_t{ {}, count, keys, csigs }) &&
-        store_.ecdsa.signature.put(fk, signature_t{ {}, count, ckeys, sigs });
+    return store_.ecdsa.put_columns(fk,
+        correlate_t{ {}, count, link, ckeys, csigs, id },
+        digest_t{ {}, count, digest },
+        compressed_t{ {}, count, keys, csigs },
+        signature_t{ {}, count, ckeys, sigs });
     // ========================================================================
 }
 

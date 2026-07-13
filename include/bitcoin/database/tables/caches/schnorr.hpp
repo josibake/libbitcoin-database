@@ -193,14 +193,28 @@ public:
         correlate(*this),
         digest(*this),
         xonly(*this),
-        signature(*this)
+        signature(*this),
+        body_(body)
     {
+    }
+
+    template <typename Correlate, typename Digest, typename Xonly,
+        typename Signature>
+    bool put_columns(const typename schnorr_table::link& record,
+        const Correlate& correlate, const Digest& digest, const Xonly& xonly,
+        const Signature& signature) NOEXCEPT
+    {
+        return schnorr_table::put_columns(body_, record, correlate, digest,
+            xonly, signature);
     }
 
     column<schnorr_table, 0> correlate;
     column<schnorr_table, 1> digest;
     column<schnorr_table, 2> xonly;
     column<schnorr_table, 3> signature;
+
+private:
+    schnorr_storage<Storage>& body_;
 };
 
 static_assert(sizeof(system::schnorr::batch::correlate_t) ==

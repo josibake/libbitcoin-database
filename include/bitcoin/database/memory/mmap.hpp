@@ -19,6 +19,7 @@
 #ifndef LIBBITCOIN_DATABASE_MEMORY_MMAP_HPP
 #define LIBBITCOIN_DATABASE_MEMORY_MMAP_HPP
 
+#include <array>
 #include <atomic>
 #include <filesystem>
 #include <mutex>
@@ -148,6 +149,10 @@ public:
     /// Same as get() but within specified column (or null for invalid column).
     memory_ptr get_at(size_t column,
         size_t offset=zero) const NOEXCEPT override;
+
+    template <typename Handler>
+    bool with_at(const sizes& offsets, Handler&& handler) const NOEXCEPT
+        requires (columns > one);
 
 protected:
     template <size_t Column>

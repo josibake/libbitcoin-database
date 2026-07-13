@@ -19,6 +19,7 @@
 #ifndef LIBBITCOIN_DATABASE_PRIMITIVES_NOMAPS_HPP
 #define LIBBITCOIN_DATABASE_PRIMITIVES_NOMAPS_HPP
 
+#include <utility>
 #include <bitcoin/database/define.hpp>
 #include <bitcoin/database/memory/memory.hpp>
 
@@ -89,6 +90,9 @@ public:
     template <size_t Column, typename Element>
     bool put(const Link& link, const Element& element) NOEXCEPT;
     template <size_t Column, typename Element>
+    static bool put(memory::iterator begin, size_t size,
+        const Element& element) NOEXCEPT;
+    template <size_t Column, typename Element>
     bool put(const memory_ptr& ptr, const Element& element) NOEXCEPT;
 
 protected:
@@ -96,6 +100,17 @@ protected:
     using body = database::managers<link, system::data_array<zero>,
         Columns::width...>;
 
+    template <typename Storage, typename... Elements>
+    static bool put_columns(Storage& storage, const Link& link,
+        const Elements&... elements) NOEXCEPT
+        requires (sizeof...(Elements) == sizeof...(Columns));
+
+private:
+    template <typename Storage, size_t... Index, typename... Elements>
+    static bool put_columns(Storage& storage, const Link& link,
+        std::index_sequence<Index...>, const Elements&... elements) NOEXCEPT;
+
+protected:
     // Thread safe (index/top/push).
     // Not thread safe (create/open/close/backup/restore).
     head head_;

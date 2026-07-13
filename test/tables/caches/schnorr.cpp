@@ -87,20 +87,29 @@ BOOST_AUTO_TEST_CASE(schnorr__set_signature__allocated_rows__expected)
     schnorr_table instance{ head, body };
     BOOST_REQUIRE(instance.create());
 
+    const typename schnorr_table::link terminal{};
+    BOOST_REQUIRE(!instance.put_columns(terminal,
+        correlate{ {}, header_fk },
+        digest_t{ {}, digest_a },
+        xonly_t{ {}, xonly_a },
+        signature_t{ {}, sig_a }));
+
     // Allocate two rows (cursor model), write each independently.
     auto fk = instance.allocate(two);
     BOOST_REQUIRE_EQUAL(fk, 0u);
 
-    BOOST_REQUIRE(instance.digest.put(fk, digest_t{ {}, digest_a }));
-    BOOST_REQUIRE(instance.xonly.put(fk, xonly_t{ {}, xonly_a }));
-    BOOST_REQUIRE(instance.signature.put(fk, signature_t{ {}, sig_a }));
-    BOOST_REQUIRE(instance.correlate.put(fk, correlate{ {}, header_fk }));
+    BOOST_REQUIRE(instance.put_columns(fk,
+        correlate{ {}, header_fk },
+        digest_t{ {}, digest_a },
+        xonly_t{ {}, xonly_a },
+        signature_t{ {}, sig_a }));
 
     ++fk;
-    BOOST_REQUIRE(instance.digest.put(fk, digest_t{ {}, digest_b }));
-    BOOST_REQUIRE(instance.xonly.put(fk, xonly_t{ {}, xonly_b }));
-    BOOST_REQUIRE(instance.signature.put(fk, signature_t{ {}, sig_b }));
-    BOOST_REQUIRE(instance.correlate.put(fk, correlate{ {}, header_fk2 }));
+    BOOST_REQUIRE(instance.put_columns(fk,
+        correlate{ {}, header_fk2 },
+        digest_t{ {}, digest_b },
+        xonly_t{ {}, xonly_b },
+        signature_t{ {}, sig_b }));
 
     // Correlate: header_fk(3) per row.
     const auto expected_correlate = base16_chunk

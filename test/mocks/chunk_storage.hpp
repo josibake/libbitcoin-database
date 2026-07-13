@@ -55,6 +55,7 @@ public:
     static constexpr std::array<size_t, columns> widths{ Widths... };
     static constexpr size_t stride = (Widths + ...);
     using paths = std::array<path, columns>;
+    using sizes = std::array<size_t, columns>;
 
     /// Scalar construction (is_one(columns)): single backing.
     chunk_storages() NOEXCEPT requires (is_one(columns))
@@ -288,6 +289,30 @@ public:
         const auto ptr = emplace_shared<accessor<std::shared_mutex>>(map_mutex_);
         ptr->assign(std::next(data, offset), std::next(data, allocated));
         return ptr;
+    }
+
+    template <typename Handler>
+    bool with_at(const sizes& offsets, Handler&& handler) const NOEXCEPT
+        requires (columns > one)
+    {
+        const auto rows = size();
+        sizes available{};
+        std::array<uint8_t*, columns> data{};
+
+        std::shared_lock map_lock(map_mutex_);
+        for (size_t column{}; column < columns; ++column)
+        {
+            const auto allocated = rows * widths.at(column);
+            const auto offset = offsets.at(column);
+            if (offset > allocated)
+                return false;
+
+            auto memory = at(column).data();
+            available.at(column) = allocated - offset;
+            data.at(column) = std::next(memory, offset);
+        }
+
+        return handler(data, available);
     }
 
     // This is protected by mutex.

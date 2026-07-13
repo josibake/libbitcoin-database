@@ -121,6 +121,34 @@ memory_ptr CLASS::get_at(size_t column, size_t offset) const NOEXCEPT
     return ptr;
 }
 
+TEMPLATE
+template <typename Handler>
+bool CLASS::with_at(const sizes& offsets, Handler&& handler) const NOEXCEPT
+    requires (columns > one)
+{
+    const auto rows = size();
+    sizes available{};
+    std::array<uint8_t*, columns> data{};
+
+    std::shared_lock remap_lock(remap_mutex_);
+    if (!loaded_)
+        return false;
+
+    for (size_t column{}; column < columns; ++column)
+    {
+        const auto allocated = rows * widths.at(column);
+        const auto offset = offsets.at(column);
+        if (offset > allocated)
+            return false;
+
+        auto memory = memory_map_.at(column);
+        available.at(column) = allocated - offset;
+        data.at(column) = std::next(memory, offset);
+    }
+
+    return handler(data, available);
+}
+
 } // namespace database
 } // namespace libbitcoin
 

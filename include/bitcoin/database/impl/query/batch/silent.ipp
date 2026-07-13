@@ -125,16 +125,15 @@ bool CLASS::set_silent(const tx_link& link,
     auto rows = possible_narrow_cast<silent_link::integer>(prefixes.size());
 
     // Allocate rows across all columns.
-    // TODO: this could provide a single remap lock for all puts below.
     const auto fk = store_.silent.allocate(rows);
     if (fk.is_terminal())
         return false;
 
     // Write values to each column in corresponding positions.
-    return
-        store_.silent.correlate.put(fk, correlate_t{ {}, rows, link }) &&
-        store_.silent.prefix.put(fk, prefix_t{ {}, prefixes }) &&
-        store_.silent.compressed.put(fk, compressed_t{ {}, rows, key });
+    return store_.silent.put_columns(fk,
+        correlate_t{ {}, rows, link },
+        prefix_t{ {}, prefixes },
+        compressed_t{ {}, rows, key });
     // ========================================================================
 }
 

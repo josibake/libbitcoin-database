@@ -320,14 +320,28 @@ public:
         correlate(*this),
         digest(*this),
         compressed(*this),
-        signature(*this)
+        signature(*this),
+        body_(body)
     {
+    }
+
+    template <typename Correlate, typename Digest, typename Compressed,
+        typename Signature>
+    bool put_columns(const typename ecdsa_table::link& record,
+        const Correlate& correlate, const Digest& digest,
+        const Compressed& compressed, const Signature& signature) NOEXCEPT
+    {
+        return ecdsa_table::put_columns(body_, record, correlate, digest,
+            compressed, signature);
     }
 
     column<ecdsa_table, 0> correlate;
     column<ecdsa_table, 1> digest;
     column<ecdsa_table, 2> compressed;
     column<ecdsa_table, 3> signature;
+
+private:
+    ecdsa_storage<Storage>& body_;
 };
 
 static_assert(sizeof(system::ecdsa::batch::correlate_t) ==

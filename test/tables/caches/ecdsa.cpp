@@ -82,13 +82,21 @@ BOOST_AUTO_TEST_CASE(ecdsa__set_signature__single__expected)
     ecdsa_table instance{ head, body };
     BOOST_REQUIRE(instance.create());
 
+    const typename ecdsa_table::link terminal{};
+    BOOST_REQUIRE(!instance.put_columns(terminal,
+        correlate{ {}, header_fk, group },
+        digest_t{ {}, digest_a },
+        compressed_t{ {}, point_a },
+        signature_t{ {}, sig_a }));
+
     const auto fk = instance.allocate(one);
     BOOST_REQUIRE_EQUAL(fk, 0u);
 
-    BOOST_REQUIRE(instance.digest.put(fk, digest_t{ {}, digest_a }));
-    BOOST_REQUIRE(instance.compressed.put(fk, compressed_t{ {}, point_a }));
-    BOOST_REQUIRE(instance.signature.put(fk, signature_t{ {}, sig_a }));
-    BOOST_REQUIRE(instance.correlate.put(fk, correlate{ {}, header_fk, group }));
+    BOOST_REQUIRE(instance.put_columns(fk,
+        correlate{ {}, header_fk, group },
+        digest_t{ {}, digest_a },
+        compressed_t{ {}, point_a },
+        signature_t{ {}, sig_a }));
 
     // Correlate: header_fk(3) | pair=0 | group.
     const auto expected_correlate = base16_chunk("efcdab" "00" "3412");
@@ -102,6 +110,67 @@ BOOST_AUTO_TEST_CASE(ecdsa__set_signature__single__expected)
     );
     const auto expected_signature = base16_chunk
     (
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    );
+
+    BOOST_REQUIRE_EQUAL(body.buffers_.at(0), expected_correlate);
+    BOOST_REQUIRE_EQUAL(body.buffers_.at(1), expected_digest);
+    BOOST_REQUIRE_EQUAL(body.buffers_.at(2), expected_compressed);
+    BOOST_REQUIRE_EQUAL(body.buffers_.at(3), expected_signature);
+    BOOST_REQUIRE(instance.close());
+}
+
+BOOST_AUTO_TEST_CASE(ecdsa__set_signatures__one_of_three__expected)
+{
+    using correlate = table::ecdsa_correlate::put_refs;
+    using digest_t = table::ecdsa_digest::put_refs;
+    using compressed_t = table::ecdsa_compressed::put_refs;
+    using signature_t = table::ecdsa_signature::put_refs;
+
+    ecdsa_storage head{ "head" };
+    ecdsa_storage body{ "body" };
+    ecdsa_table instance{ head, body };
+    BOOST_REQUIRE(instance.create());
+
+    constexpr auto rows = 3_size;
+    constexpr auto keys = 3_size;
+    constexpr auto sigs = 1_size;
+    const ec_compresseds points{ point_a, point_b, point_c };
+    const ec_signatures signatures{ sig_a };
+    const auto fk = instance.allocate(rows);
+    BOOST_REQUIRE_EQUAL(fk, 0u);
+
+    BOOST_REQUIRE(instance.put_columns(fk,
+        correlate{ {}, rows, header_fk, keys, sigs, group },
+        digest_t{ {}, rows, digest_a },
+        compressed_t{ {}, rows, points, sigs },
+        signature_t{ {}, rows, keys, signatures }));
+
+    const auto expected_correlate = base16_chunk
+    (
+        "efcdab" "00" "3412"
+        "efcdab" "01" "3412"
+        "efcdab" "02" "3412"
+    );
+    const auto expected_digest = base16_chunk
+    (
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    );
+    const auto expected_compressed = base16_chunk
+    (
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    );
+    const auto expected_signature = base16_chunk
+    (
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
     );

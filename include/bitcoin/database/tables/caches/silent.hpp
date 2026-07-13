@@ -180,13 +180,26 @@ public:
       : silent_table(head, body),
         correlate(*this),
         prefix(*this),
-        compressed(*this)
+        compressed(*this),
+        body_(body)
     {
+    }
+
+    template <typename Correlate, typename Prefix, typename Compressed>
+    bool put_columns(const typename silent_table::link& record,
+        const Correlate& correlate, const Prefix& prefix,
+        const Compressed& compressed) NOEXCEPT
+    {
+        return silent_table::put_columns(body_, record, correlate, prefix,
+            compressed);
     }
 
     column<silent_table, 0> correlate;
     column<silent_table, 1> prefix;
     column<silent_table, 2> compressed;
+
+private:
+    silent_storage<Storage>& body_;
 };
 
 static_assert(is_same_type<silent_prefix::span,

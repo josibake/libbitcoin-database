@@ -62,15 +62,16 @@ BOOST_AUTO_TEST_CASE(silent__put_columns__three_rows__expected)
         0x3333333333333333_u64
     };
 
-    const auto fk = instance.allocate(3);
-    BOOST_REQUIRE_EQUAL(fk, 0u);
-
     const table::silent_correlate::records correlate{ {}, rows, tx_fk };
     const table::silent_prefix::put_ref prefix{ {}, prefixes };
     const table::silent_compressed::put_ref compress{ {}, rows, compressed };
-    BOOST_REQUIRE(instance.correlate.put(fk, correlate));
-    BOOST_REQUIRE(instance.prefix.put(fk, prefix));
-    BOOST_REQUIRE(instance.compressed.put(fk, compress));
+
+    const typename silent_table::link terminal{};
+    BOOST_REQUIRE(!instance.put_columns(terminal, correlate, prefix, compress));
+
+    const auto fk = instance.allocate(3);
+    BOOST_REQUIRE_EQUAL(fk, 0u);
+    BOOST_REQUIRE(instance.put_columns(fk, correlate, prefix, compress));
 
     const auto expected_correlate = base16_chunk
     (

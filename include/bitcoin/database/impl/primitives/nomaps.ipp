@@ -183,6 +183,58 @@ bool CLASS::put(const Link& link, const Element& element) NOEXCEPT
 }
 
 TEMPLATE
+template <typename Storage, typename... Elements>
+bool CLASS::put_columns(Storage& storage, const Link& link,
+    const Elements&... elements) NOEXCEPT
+    requires (sizeof...(Elements) == sizeof...(Columns))
+{
+    if (link.is_terminal())
+        return false;
+
+    return put_columns(storage, link, std::index_sequence_for<Columns...>{},
+        elements...);
+}
+
+TEMPLATE
+template <typename Storage, size_t... Index, typename... Elements>
+bool CLASS::put_columns(Storage& storage, const Link& link,
+    std::index_sequence<Index...>, const Elements&... elements) NOEXCEPT
+{
+    const typename Storage::sizes offsets
+    {
+        body::template link_to_position<Index>(link)...
+    };
+
+    return storage.with_at(offsets,
+        [&](const auto& data, const auto& sizes) NOEXCEPT
+        {
+            return (put<Index>(data.at(Index), sizes.at(Index), elements) &&
+                ...);
+        });
+}
+
+TEMPLATE
+template <size_t Column, typename Element>
+bool CLASS::put(memory::iterator begin, size_t size,
+    const Element& element) NOEXCEPT
+{
+    static_assert(Element::size == width<Column>, "element size != width");
+    using namespace system;
+    if (is_null(begin) || is_limited<ptrdiff_t>(size))
+        return false;
+
+    iostream stream
+    {
+        begin,
+        possible_narrow_and_sign_cast<ptrdiff_t>(size)
+    };
+    flipper sink{ stream };
+
+    BC_DEBUG_ONLY(sink.set_limit(width<Column> * element.count());)
+    return element.to_data(sink);
+}
+
+TEMPLATE
 template <size_t Column, typename Element>
 bool CLASS::put(const memory_ptr& ptr, const Element& element) NOEXCEPT
 {
